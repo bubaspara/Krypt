@@ -21,6 +21,7 @@ const getEthereumContract = () => {
 export const TransactionProvider = ({ children }) => {
   const [currentAccount, setCurrentAccount] = useState();
   const [isLoading, setIsLoading] = useState(false);
+  const [isWrongNetwork, setIsWrongNetwork] = useState(false);
   const [transactionCount, setTransactionCount] = useState(
     localStorage.getItem("transactionCount")
   );
@@ -31,6 +32,27 @@ export const TransactionProvider = ({ children }) => {
     keyword: "",
     message: "",
   });
+
+  const checkIfNetworkRopsten = async () => {
+    if (!window.ethereum) return;
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const networkName = await provider.getNetwork();
+    console.log(networkName);
+    if (networkName.name !== "ropsten") setIsWrongNetwork(true);
+  };
+
+  const switchToRopsten = async () => {
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x3" }],
+      });
+
+      setIsWrongNetwork(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleChange = (e, name) => {
     setFormData((prevState) => ({
@@ -150,6 +172,10 @@ export const TransactionProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    checkIfNetworkRopsten();
+  }, [isWrongNetwork]);
+
+  useEffect(() => {
     checkIfWalletIsConnected();
     checkIfTransactionsExits();
   }, [transactions]);
@@ -161,6 +187,8 @@ export const TransactionProvider = ({ children }) => {
         connectWallet,
         setFormData,
         sendTransaction,
+        switchToRopsten,
+        isWrongNetwork,
         isLoading,
         currentAccount,
         formData,
